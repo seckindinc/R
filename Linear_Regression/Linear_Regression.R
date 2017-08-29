@@ -4,6 +4,7 @@ library(ggplot2)
 library(corrplot)
 library(lmtest)
 library(Hmisc)
+library(car)
 
 #Step 1: Data Understanding
 
@@ -229,24 +230,31 @@ for(i in names(predictors)) {
 
 #6) The number of observations must be greater than number of Xs
 
-#Model Coefficients
-coefficients(multiple_linear_model)
+#7) The variability in X values is positive
+for(i in names(predictors)) {
+  cat ("Variance of ",i)
+  print (var(as.numeric(unlist(predictors[,i]))))
+}
+# Variance of  AGE[1] 97.54978
+# Variance of  NUMKIDS[1] 1.370254
+# Variance of  NUMCARDS[1] 3.537112
+# Variance of  STORECAR[1] 1.829982
+# Variance of  LOANS[1] 0.7025512
 
-#Predicted Values
-fitted(multiple_linear_model)
+#8) No perfect multicollinearity
+#This can be handled by Variance Inflaction Factor
+#VIF is a metric computed for every X variable that goes into a linear model. 
+#If the VIF of a variable is high, it means the information in that variable is already explained by other X variables present in the given model, 
+#which means, more redundant is that variable. So, lower the VIF (<2) the better.
+vif(multiple_linear_model)
+# AGE  NUMKIDS NUMCARDS STORECAR    LOANS 
+# 1.708857 2.606943 2.988686 2.265843 2.352308
 
-#Residuals
-residuals(multiple_linear_model)
-
-#Anova Table
-anova(multiple_linear_model)
+#9) Normality of residuals
+print (shapiro.test(multiple_linear_model$residuals))
 
 #Diagnotics
-influence(multiple_linear_model)
-
-#Variace Inflation Factor
-library(car)
-vif(multiple_linear_model)
+head(influence.measures(multiple_linear_model))
 
 #Ilgili package lar indirilince bakilacak. statsmethod sayfasından
 
