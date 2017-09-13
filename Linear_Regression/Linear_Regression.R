@@ -19,7 +19,7 @@ Risk <- read_delim("/home/seckindinc/Desktop/Projects/R/Data/Risk.txt", "\t", es
 str(Risk)
 
 #Summary of Data
-summary(Risk$RISK)
+summary(Risk)
 
 #Selecting Integer Fields excep ID column
 integer_fields = subset(Risk[,sapply(Risk, is.numeric)], select=-ID)
@@ -104,7 +104,7 @@ outlier_detection_sd_func <- function (table_name, column_name) {
 }
 
 #Removing the last column from data frame
-#integer_fields = subset(Risk$RISK[,sapply(Risk$RISK, is.numeric)], select=-integer_fields[,ncol(integer_fields)])
+#integer_fields = subset(Risk[,sapply(Risk, is.numeric)], select=-integer_fields[,ncol(integer_fields)])
 
 #Assigning outlier detection for every column
 for(i in names(integer_fields)) {
@@ -116,9 +116,6 @@ for(i in names(integer_fields)) {
 
 #Multiple Linear Regression
 multiple_linear_model = lm(INCOME~. ,data=train)
-
-#Stepwise regression
-stepwise_model <- stepAIC(multiple_linear_model, direction = "both")
 
 #General Model Statistics
 summary(stepwise_model)
@@ -139,6 +136,11 @@ summary(stepwise_model)
 #H0 : β 1 = β 2 = · · · = β p = 0
 #Ha : at least one β j is non-zero.
 #By the f statistics we reject H0
+
+multiple_linear_model = lm(INCOME~AGE+NUMKIDS+STORECAR+LOANS ,data=train)
+
+#Stepwise regression
+stepwise_model <- stepAIC(multiple_linear_model, direction = "both")
 
 #1)The regression model is linear in parameters
 
@@ -165,7 +167,7 @@ plot(stepwise_model)
 dwtest(stepwise_model)
 
 #5) The X variables and residuals are uncorrelated
-for(i in names(subset(train, select=-INCOME))) {
+for(i in names(subset(train, select=-INCOME,NUMCARDS))) {
   cat ("Correlation Between ",i," and Residuals Test")
   print (cor.test(as.numeric(unlist(train[,i])),stepwise_model$residuals))
 }
@@ -184,7 +186,7 @@ for(i in names(subset(train, select=-INCOME))) {
 #6) The number of observations must be greater than number of Xs
 
 #7) The variability in X values is positive
-for(i in names(subset(train, select=-INCOME))) {
+for(i in names(subset(train, select=-INCOME,NUMCARDS))) {
   cat ("Variance of ",i)
   print (var(as.numeric(unlist(train[,i]))))
 }

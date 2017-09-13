@@ -1,14 +1,14 @@
 #Package Loading
 library(readr)
-library(bootstrap)
-library(MASS)
-library(DAAG)
-library(relaimpo)
+# library(bootstrap)
+# library(MASS)
+# library(DAAG)
+# library(relaimpo)
 library(ggplot2)
 library(corrplot)
-library(lmtest)
-library(Hmisc)
-library(car)
+# library(lmtest)
+# library(Hmisc)
+# library(car)
 
 #Step 1: Data Understanding
 
@@ -19,15 +19,21 @@ Risk <- read_delim("/home/seckindinc/Desktop/Projects/R/Data/Risk.txt", "\t", es
 str(Risk)
 
 #Summary of Data
-summary(Risk$RISK)
+summary(Risk)
+
+#Train and Test Data
+dt = sort(sample(nrow(Risk), nrow(Risk)*.7))
+train <- subset(Risk[dt,], select=-ID)
+test <- subset(Risk[-dt,], select=-ID)
+
+#Categorizing RISK column
+train$RISK_Category[train$RISK == "good risk"] <- 1
+train$RISK_Category[train$RISK != "good risk"] <- 2
+train$RISK_Category <- factor(train$RISK_Category,levels=c(1,2),labels=c("Good","Bad"))
+train <- subset(train, select=-RISK)
 
 #Selecting Integer Fields excep ID column
 integer_fields = subset(Risk[,sapply(Risk, is.numeric)], select=-ID)
-
-#Train and Test Data
-dt = sort(sample(nrow(integer_fields), nrow(integer_fields)*.7))
-train <- integer_fields[dt,]
-test <- integer_fields[-dt,]
 
 #Histogram Function
 histogram_func <- function (table_name, column_name) {
@@ -115,7 +121,39 @@ for(i in names(integer_fields)) {
 #Step 3: Modelling
 
 #Multiple Linear Regression
-multiple_linear_model = lm(INCOME~. ,data=train)
+multiple_logistic_model = glm(RISK_Category~. ,data=train, family=binomial())
+
+#Summary
+summary(multiple_logistic_model)
+ 
+# Deviance Residuals: 
+#   Min       1Q   Median       3Q      Max  
+# -3.0437   0.1870   0.3118   0.4724   2.2694  
+# 
+# Coefficients:
+#   Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)    -6.409e-01  7.354e-01  -0.871  0.38352    
+# AGE            -4.288e-02  9.520e-03  -4.505 6.65e-06 ***
+#   INCOME         -6.738e-05  9.021e-06  -7.469 8.06e-14 ***
+#   GENDERm         6.214e-03  1.146e-01   0.054  0.95675    
+# MARITALmarried  4.057e+00  3.870e-01  10.485  < 2e-16 ***
+#   MARITALsingle   3.967e+00  4.577e-01   8.668  < 2e-16 ***
+#   NUMKIDS         2.835e-01  9.138e-02   3.103  0.00192 ** 
+#   NUMCARDS        2.415e-01  7.758e-02   3.114  0.00185 ** 
+#   HOWPAIDweekly   7.034e-01  2.204e-01   3.192  0.00141 ** 
+#   MORTGAGEy      -5.262e-01  1.700e-01  -3.095  0.00197 ** 
+#   STORECAR        1.968e-01  7.098e-02   2.773  0.00556 ** 
+#   LOANS           8.381e-01  1.251e-01   6.698 2.11e-11 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# (Dispersion parameter for binomial family taken to be 1)
+# 
+# Null deviance: 2866.0  on 2880  degrees of freedom
+# Residual deviance: 1993.6  on 2869  degrees of freedom
+# AIC: 2017.6
+# 
+# Number of Fisher Scoring iterations: 6
 
 #Stepwise regression
 stepwise_model <- stepAIC(multiple_linear_model, direction = "both")
