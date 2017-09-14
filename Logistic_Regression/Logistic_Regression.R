@@ -199,4 +199,10 @@ plot(ROCRperf) > auc(train$RISK_Category,train$predict)
 test$predict <- predict(multiple_logistic_model_reduced,newdata = test,type = "response")
 test$RISK_Category_predict <- ifelse(test$predict > 0.5, "Good","Bad")
 
+#Confusion Matrix Details
+# accuracy = (true positive + true negatve) / all (100 times this is the same as percentCorrect)
+# sensitivity = true pasitive rate = true positive / all positive (sensitivity is also called recall)
+# specificity = true negative rate = true negative / all negative
+# precision = positive predictive velue = true positive rate
+
 confusionMatrix(test[["RISK_Category_predict"]], test[["RISK_Category"]])
