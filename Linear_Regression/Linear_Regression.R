@@ -1,14 +1,12 @@
 #Package Loading
 library(readr)
-library(bootstrap)
-library(MASS)
-library(DAAG)
-library(relaimpo)
 library(ggplot2)
 library(corrplot)
+library(MASS)
 library(lmtest)
-library(Hmisc)
-library(car)
+library(relaimpo)
+library(bootstrap)
+library(DAAG)
 
 #Step 1: Data Understanding
 
@@ -25,28 +23,31 @@ summary(Risk)
 integer_fields = subset(Risk[,sapply(Risk, is.numeric)], select=-ID)
 
 #Train and Test Data
-dt = sort(sample(nrow(integer_fields), nrow(integer_fields)*.7))
+dt = sample(nrow(integer_fields), nrow(integer_fields)*.7)
 train <- integer_fields[dt,]
 test <- integer_fields[-dt,]
+
+#Target Field
+Target_Field <- Risk$RISK
 
 #Histogram Function
 histogram_func <- function (table_name, column_name) {
   g <- ggplot(table_name, aes(as.numeric(unlist(table_name[, column_name])))) + scale_fill_brewer(palette = "Spectral")
-  g <- g + geom_histogram( aes(fill=Risk$RISK), bins=5, col="black", size=.1) + labs(x = i, y = "Kayıt Sayısı")
+  g <- g + geom_histogram( aes(fill=Target_Field), bins=5, col="black", size=.1) + labs(x = i, y = "Row Number")
   print(g)
 }
 
 #Boxplot Function
 boxplot_func <- function (table_name, column_name) {
-  g <- ggplot(table_name, aes(Risk$RISK,as.numeric(unlist(table_name[, column_name]))))
-  g <- g + geom_boxplot(varwidth=T, fill="plum") + labs(x=Risk$RISK, y=column_name)
+  g <- ggplot(table_name, aes(Target_Field,as.numeric(unlist(table_name[, column_name]))))
+  g <- g + geom_boxplot(varwidth=T, fill="plum") + labs(x=Target_Field, y=column_name)
   print(g)
 }
 
 #Density Function
 density_func <- function (table_name, column_name) {
   g <- ggplot(table_name, aes(as.numeric(unlist(table_name[, column_name]))))
-  g <- g + geom_density(aes(fill=factor(Risk$RISK)), alpha = 0.8) + labs(x=column_name, fill= Risk$RISK)
+  g <- g + geom_density(aes(fill=factor(Target_Field)), alpha = 0.8) + labs(x=column_name, fill= Target_Field)
   print(g)
 }
 
@@ -88,7 +89,9 @@ for(i in names(integer_fields)) {
 #Scatter Function Iterating Through Data Frame
 for(i in names(integer_fields)) {
   for(j in names(integer_fields)) {
+    if (i != j) {
     scatter_func(integer_fields,i,j)  
+    }
   }
 }
 
@@ -99,15 +102,21 @@ correlation_func(integer_fields)
 plot(integer_fields, pch=16, col="blue", main="Scatter Plot of Integers")
 
 #Step 2: Data Preparation
+#Outlier Detection Function
 outlier_detection_sd_func <- function (table_name, column_name) {
   abs(as.numeric(unlist(table_name[, column_name]))-mean(as.numeric(unlist(table_name[, column_name])),na.rm=TRUE)) > 2*sd(as.numeric(unlist(table_name[, column_name])),na.rm=TRUE)
 }
+
+#Mahalanobis Distance
+mean <- colMeans(integer_fields)
+Sx <- cov(integer_fields)
+integer_fields$Mahalanobis_Distance <- mahalanobis(integer_fields, mean, Sx) > 20
 
 #Removing the last column from data frame
 #integer_fields = subset(Risk[,sapply(Risk, is.numeric)], select=-integer_fields[,ncol(integer_fields)])
 
 #Assigning outlier detection for every column
-for(i in names(integer_fields)) {
+for(i in names(subset(integer_fields,select=-Mahalanobis_Distance))) {
   integer_fields <- cbind(integer_fields,outlier_detection_sd_func(integer_fields,i))
   names(integer_fields)[length(names(integer_fields))] <- paste("Outlier_",i,sep="")
 }
@@ -118,7 +127,7 @@ for(i in names(integer_fields)) {
 multiple_linear_model = lm(INCOME~. ,data=train)
 
 #General Model Statistics
-summary(stepwise_model)
+summary(multiple_linear_model)
 #At variable selection phase we need to investigate every single variable to enter the model or not.
 # H0 : β1 = 0
 # Ha : β1 <> 0
@@ -137,10 +146,14 @@ summary(stepwise_model)
 #Ha : at least one β j is non-zero.
 #By the f statistics we reject H0
 
+#Removing NUMCARDS from model
 multiple_linear_model = lm(INCOME~AGE+NUMKIDS+STORECAR+LOANS ,data=train)
 
 #Stepwise regression
 stepwise_model <- stepAIC(multiple_linear_model, direction = "both")
+
+#Model Summary
+summary(stepwise_model)
 
 #1)The regression model is linear in parameters
 
@@ -167,7 +180,7 @@ plot(stepwise_model)
 dwtest(stepwise_model)
 
 #5) The X variables and residuals are uncorrelated
-for(i in names(subset(train, select=-INCOME,NUMCARDS))) {
+for(i in c("AGE","NUMKIDS","STORECAR","LOANS")) {
   cat ("Correlation Between ",i," and Residuals Test")
   print (cor.test(as.numeric(unlist(train[,i])),stepwise_model$residuals))
 }
@@ -186,7 +199,7 @@ for(i in names(subset(train, select=-INCOME,NUMCARDS))) {
 #6) The number of observations must be greater than number of Xs
 
 #7) The variability in X values is positive
-for(i in names(subset(train, select=-INCOME,NUMCARDS))) {
+for(i in c("AGE","NUMKIDS","STORECAR","LOANS")) {
   cat ("Variance of ",i)
   print (var(as.numeric(unlist(train[,i]))))
 }
@@ -219,7 +232,7 @@ names(train)[length(names(train))] <- paste("cook_distance",sep="")
 #Variable Importance
 calc.relimp(stepwise_model,rela=TRUE)
 
-#Cross Validation
+# K - Fold Cross Validation
 # In cross-validation, a portion of the data is selected as the training sample and a
 # portion is selected as the hold-out sample. A regression equation is developed on
 # the training sample, and then applied to the hold-out sample. Because the hold-out
