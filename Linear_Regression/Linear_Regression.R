@@ -7,6 +7,8 @@ library(lmtest)
 library(relaimpo)
 library(bootstrap)
 library(DAAG)
+library(caret)
+library(boot)
 
 #Step 1: Data Understanding
 
@@ -148,6 +150,31 @@ summary(multiple_linear_model)
 
 #Removing NUMCARDS from model
 multiple_linear_model = lm(INCOME~AGE+NUMKIDS+STORECAR+LOANS ,data=train)
+
+#10-Fold Cross Validated Regression
+multiple_linear_cv_model <- train(INCOME~AGE+NUMKIDS+STORECAR+LOANS ,data=train, method = "lm", 
+                             trControl = trainControl(method = "cv", number = 10,verboseIter = TRUE))
+
+#Boostraped Linear Regression
+rsq <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample 
+  fit <- lm(formula, data=d)
+  return(summary(fit)$r.square)
+} 
+
+# bootstrapping with 1000 replications 
+results <- boot(data=train, statistic=rsq, R=1000, formula=INCOME~AGE+NUMKIDS+STORECAR+LOANS)
+
+# view results
+results 
+plot(results)
+
+# get 95% confidence interval 
+boot.ci(results)
+
+#Model Comparison multiple_linear_model vs multiple_linear_cv_model
+multiple_linear_cv_model
+summary(multiple_linear_model)
 
 #Stepwise regression
 stepwise_model <- stepAIC(multiple_linear_model, direction = "both")

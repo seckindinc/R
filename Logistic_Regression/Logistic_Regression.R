@@ -2,8 +2,9 @@
 library(readr)
 library(ggplot2)
 library(corrplot)
-library(caret)
 library(ROCR)
+
+library(caret)
 library(Metrics)
 
 #Step 1: Data Understanding
