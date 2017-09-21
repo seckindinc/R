@@ -3,7 +3,6 @@ library(readr)
 library(ggplot2)
 library(corrplot)
 library(ROCR)
-
 library(caret)
 library(Metrics)
 
@@ -158,6 +157,12 @@ multiple_logistic_model_reduced = glm(RISK_Category~AGE+INCOME+MARITAL+NUMKIDS+N
 
 #Model Summary
 summary(multiple_logistic_model_reduced)
+
+#Coefficients
+coef(multiple_logistic_model_reduced)
+
+#Coefficients
+summary(multiple_logistic_model_reduced)$coef[,4]
 
 #compare two models
 #With p > 0.05, this ANOVA test also corroborates the fact that the second model is better than first model.
