@@ -2,6 +2,7 @@
 library(readr)
 library(NbClust)
 library(cluster)
+library(fpc)
 
 #Gathering Data
 Risk <- read_delim("/home/seckindinc/Desktop/Projects/R/Data/Risk.txt", "\t", escape_double = FALSE, trim_ws = TRUE)
@@ -90,7 +91,11 @@ nb <- NbClust(train_knn, distance = "euclidean", min.nc = 2, max.nc = 10, method
 #Print Result
 nb
 
+#Modelling
+kmeans_3 <- kmeans(train_knn, 3, nstart=100, iter.max = 15)
 
+clusplot(train_knn, kmeans_3$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
 
-
+# Centroid Plot against 1st 2 discriminant functions
+plotcluster(train_knn, kmeans_3$cluster)
 
